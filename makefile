@@ -1,16 +1,24 @@
 CC = gcc
 CFLAGS = $(CF) -Wall -Wextra -Wpedantic -Wwrite-strings -Wstack-usage=512 -Wfloat-equal -Waggregate-return -Winline
-OUT = battleship
-SRC = battleship.c BattleshipGame.c
-DEPS = BattleshipGame.h
-OBJ = battleship.o BattleshipGame.o 
+OUT = BIN/battleship
+SRC = SRC/battleship.c SRC/BattleshipGame.c
+DEPS = SRC/BattleshipGame.h
+OBJ = SRC/battleship.o SRC/BattleshipGame.o 
 
 all:
 	@$(CC) $(CFLAGS) -o $(OUT) $(SRC)
 
-debug:
+debug: $(DEPS)
 	@$(CC) -g $(CFLAGS) -o $(OUT) $(SRC)
 
-clean:
+build: clean $(DEPS)
+	@$(CC) $(CFLAGS) -o $(OUT) $(SRC)
+
+buildAll: $(DEPS)
+	@$(CC) -g $(CFLAGS) -o $(OUT) $(SRC)
+
+cleanAll:
 	-@rm -rf *.o $(OUT)
 
+clean:
+	-@rm -rf *.o
