@@ -19,19 +19,22 @@ int main(void)
     while(!valid)
     {
         system("clear");
-        printf("  1. New Game\n  2. Load\n  [Q]uit\n>");
+        printf("  1. New Game\n  2. Load\n  [Q]uit\n> ");
 
         getline(&line, &size, stdin);
         valid = mainMenu(players, line);
     }
     
-    while(playing)
+    while(playing && valid)
     {
-        system("clear");
+        system("tput reset");
         turn = checkTurn(players);
         playing = game(players, turn);
     }
 
-    playerDestruct(players);
+    while(!playing && !valid)
+    {
+        playerDestruct(players);
+    }
     return 0;
 }

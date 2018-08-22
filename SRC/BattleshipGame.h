@@ -66,7 +66,7 @@ int shipPlacement(char **shipPlacement, int player, int size);
 int autoShipPlacement(char **shipPlacement, int size);
 int placeShip(char **shipPlacement, int boardSize, char *start, char *end, 
         char ship, Ships size);
-int validLocationInput(int boardSize, char *start, char *end, Ships size);
+int validLocationInput(char **shipPlacement, int boardSize, char *start, char *end, Ships size);
 int shipCheck(char *start, char *end, char ship);
 void printBoard(char **board, int size);
 void printUpperRow(int size);

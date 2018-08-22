@@ -1,3 +1,0 @@
-COL Battleship
-
-Bruce Cain

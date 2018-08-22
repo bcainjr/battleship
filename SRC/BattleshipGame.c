@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <ctype.h>
 #include "BattleshipGame.h"
 
@@ -64,28 +65,25 @@ static void getBoardSize(Player **players)
     free(line);
 }
 
+void printDivider(int boardSize)
+{
+    for(int i = 0; i < boardSize * 2 + 3; i++)
+    {
+        printf("=");
+    }
+    printf("\n");
+}
+
 void printUpperRow(int size)
 {
     int rowWidth = getWidth(size);
-    char upperRow[27] = 
-    {
-        'A', 'B', 'C', 'D', 'E', 
-        'F', 'G', 'H', 'I', 'J',
-        'K', 'L', 'M', 'N', 'O',
-        'P', 'Q', 'R', 'S', 'T',
-        'U', 'V', 'W', 'X', 'Y',
-        'Z'
-    };
+    char const *upperRow = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-    for(int i = 0; i < size + 1; i++)
-    {
-        if(!i)
-        {
-            printf("%*c ", rowWidth, ' ');
-            continue;
-        }
+    printf("%*c ", rowWidth, ' ');
 
-        printf("%c ", upperRow[i-1]);
+    for(int i = 0; i < size; i++)
+    {
+        printf("%c ", upperRow[i]);
     }
 
     printf("\n");
@@ -124,7 +122,35 @@ int placeShip(char **shipPlacement, int boardSize, char *start, char *end,
         char ship, Ships size)
 {
     /* Check bounds and ship length */
-    if(!validLocationInput(boardSize, start, end, size))
+    if(!validLocationInput(shipPlacement, boardSize, start, end, size))
+    {
+        return INVALID;
+    }
+
+    for(int j = toupper(*start) - 'A'; j < toupper(*end) - 'A' + 1; j++)
+    {
+        for(int i = strtol(start+1, NULL, 10); i < strtol(end+1, NULL, 10) + 1; i++)
+        {
+            shipPlacement[i-1][j] = ship;
+        }
+    }
+
+    return VALID;
+}
+
+int validLocationInput(char **shipPlacement, int boardSize, char *start, char *end, Ships size)
+{
+    int startVal = (toupper(*start) - 'A') + strtol(start+1, NULL, 10),
+        endVal = (toupper(*end) - 'A') + strtol(end+1, NULL, 10),
+        row = strtol(start+1, NULL, 10),
+        column = toupper(*start) - 'A';
+    char startBoundry = startVal >= 1 && startVal < (boardSize * 2),
+         endBoundry = endVal >= 1 && endVal < (boardSize * 2),
+         boatLength = endVal - startVal + 1 == (int) size;
+
+    
+    if(!startBoundry || !endBoundry || !boatLength ||
+           shipPlacement[row][column] || shipPlacement[row][column])
     {
         return INVALID;
     }
@@ -137,34 +163,9 @@ int placeShip(char **shipPlacement, int boardSize, char *start, char *end,
             {
                 return INVALID;
             }
-
-            shipPlacement[i-1][j] = ship;
         }
     }
-
     return VALID;
-}
-
-int validLocationInput(int boardSize, char *start, char *end, Ships size)
-{
-    int startVal = (toupper(*start) - 'A') + strtol(start+1, NULL, 10),
-        endVal = (toupper(*end) - 'A') + strtol(end+1, NULL, 10);
-
-    if(!(startVal >= 1 && startVal < (boardSize * 2)))
-    {
-        return INVALID;
-    }
-    else if(!(endVal >= 1 && endVal < (boardSize * 2)))
-    {
-        return INVALID;
-    }
-    else if(!(((endVal - startVal) + 1) == (int) size))
-    {
-        return INVALID;
-    }
-
-    return VALID;
-
 }
 
 int autoShipPlacement(char **shipPlacement, int boardSize)
@@ -216,6 +217,7 @@ int shipPlacement(char **shipPlacement, int player, int boardSize)
 
     for(int i = 0; i < 6; i++)
     {
+        system("tput reset");
         printBoard(shipPlacement, boardSize);
         printf("Player %d place:\n%4c%s Size: %u\n", 
                 player + 1, ' ', ships[i], ship[i]);
@@ -395,15 +397,16 @@ void readLoad(Player **players, FILE *loadFile)
 
 int load(Player **players)
 {
-    FILE *loadFile = fopen("SRC/.battleship", "rb+");
+    FILE *loadFile = fopen("SRC/.battleship", "rb");
 
     if(loadFile == NULL)
     {
-        loadFile = fopen("../SRC/.battleship", "rb+");
+        loadFile = fopen("../SRC/.battleship", "rb");
         if(loadFile == NULL)
         {
             fprintf(stderr, "Failed to load file.\n");
-            return FAILEDLOAD;
+            sleep(2);
+            return INVALID;
         }
     }
 
@@ -480,7 +483,7 @@ char checkShot(Player *player, int row, int column)
 
 void checkSunkinShip(Player *player, int turn)
 {
-    char flag = 0, printShip[17] = {0}, 
+    char flag = 1, printShip[17] = {0}, 
          ships[7][17] =
          {
              "Patrol Boat", "Submarine", "Cruiser",
@@ -496,44 +499,42 @@ void checkSunkinShip(Player *player, int turn)
     if(player->shipHP->patrolHit == (char) ship[0] &&
             !player->shipHit->patrol)
     {
-        flag = 1;
         player->shipHit->patrol = 1;
         strcpy(printShip, ships[0]);
     }
     else if(player->shipHP->subHit == (char) ship[1] &&
             !player->shipHit->sub)
     {
-        flag = 1;
         player->shipHit->sub = 1;
         strcpy(printShip, ships[1]);
     }
     else if(player->shipHP->cruiserHit == (char) ship[2] &&
             !player->shipHit->cruiser)
     {
-        flag = 1;
         player->shipHit->cruiser = 1;
         strcpy(printShip, ships[2]);
     }
     else if(player->shipHP->destroyerHit == (char) ship[3] &&
             !player->shipHit->destroyer)
     {
-        flag = 1;
         player->shipHit->destroyer = 1;
         strcpy(printShip, ships[3]);
     }
     else if(player->shipHP->battleshipHit == (char) ship[4] &&
             !player->shipHit->battleship)
     {
-        flag = 1;
         player->shipHit->battleship = 1;
         strcpy(printShip, ships[4]);
     }
     else if(player->shipHP->aircraftHit == (char) ship[5] &&
             !player->shipHit->aircraft)
     {
-        flag = 1;
         player->shipHit->aircraft = 1;
         strcpy(printShip, ships[5]);
+    }
+    else
+    {
+        flag = 0;
     }
 
     if(flag)
@@ -580,8 +581,7 @@ int mainMenu(Player **players, char *input)
         {
             if(!load(players))
             {
-                fprintf(stderr, "Failed to load.\n");
-                return FAILEDLOAD;
+                return INVALID;
             }
             break;
         }
@@ -605,20 +605,16 @@ int mainMenu(Player **players, char *input)
 int game(Player **players, int turn)
 {
     char *line = NULL;
+    static char shot;
     size_t size = 0;
     int column = 0;
     long row = 0;
 
-    if(!turn)
-    {
-        checkSunkinShip(players[turn+1], turn+2);
-    }
-    else
-    {
-        checkSunkinShip(players[turn-1], turn);
-    }
+    checkSunkinShip(players[turn^1], turn+2);
 
     printBoard(players[turn]->hitMiss, players[turn]->size);
+    printDivider(players[turn]->size);
+    printBoard(players[turn]->shipPlacement, players[turn]->size);
     printf("Player %d SHOOT!\nType quit to exit.\n", turn + 1);
 
     do
@@ -642,8 +638,9 @@ int game(Player **players, int turn)
             players[turn]->hitMiss[row-1][column]);
 
     players[turn]->totalShots++;
-    players[turn]->hitMiss[row-1][column] = 
-        checkShot(players[turn], row, column);
+    shot = checkShot(players[turn], row, column); 
+    players[turn]->hitMiss[row-1][column] = shot; 
+    players[turn^1]->shipPlacement[row-1][column] = shot;
 
     free(line);
 
