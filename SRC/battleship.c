@@ -19,7 +19,7 @@ int main(void)
     while(!valid)
     {
         system("clear");
-        printf("  1. New Game\n  2. Load\n  [Q]uit\n> ");
+        printf(BANNER "  1. New Game\n  2. Load\n  [Q]uit\n> ");
 
         getline(&line, &size, stdin);
         valid = mainMenu(players, line);

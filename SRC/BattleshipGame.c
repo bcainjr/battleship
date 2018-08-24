@@ -10,10 +10,24 @@
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <time.h>
 #include "BattleshipGame.h"
 
+#define ESC     "\033"
+#define ANSIESC      ESC "["
+#define RESETCOLOR   ANSIESC "0m"
+#define BLUE         ANSIESC "34m"
+#define WHITE        ANSIESC "37m"
+#define RED          ANSIESC "31m"
+#define CYAN         ANSIESC "36m"
+#define GREEN        ANSIESC "32m"
+
+#define TRUE           1
+#define FALSE          0
 #define HIT          'H'
 #define MISS         'M'
+#define TERRAIN      'T'
+#define WATER        BLUE "~ " RESETCOLOR
 
 /* Error codes */
 #define VALID          1
@@ -58,11 +72,27 @@ static void getBoardSize(Player **players)
         }
 
         break;
-    }while(1);
+    }while(TRUE);
 
     players[0]->size = atoi(line);
     players[1]->size = atoi(line);
     free(line);
+}
+
+static void randomTerrain(Player *player)
+{
+    int randomRow, randomColumn, numberOfTiles;
+    srand(time(0));
+
+    numberOfTiles = player->size * player->size * .1;
+    for(int i = 0; i < numberOfTiles; i++)
+    {
+        randomRow = rand() % (player->size);
+        randomColumn = rand() % (player->size);
+
+        player->shipPlacement[randomRow][randomColumn] = TERRAIN;
+        player->hitMiss[randomRow][randomColumn] = TERRAIN;
+    }
 }
 
 void printDivider(int boardSize)
@@ -83,7 +113,7 @@ void printUpperRow(int size)
 
     for(int i = 0; i < size; i++)
     {
-        printf("%c ", upperRow[i]);
+        printf(WHITE "%c " RESETCOLOR, upperRow[i]);
     }
 
     printf("\n");
@@ -100,17 +130,36 @@ void printBoard(char **board, int size)
         {
             if(!j)
             {
-                printf("%*d ", rowWidth, i+1);
+                printf(WHITE "%*d " RESETCOLOR, rowWidth, i+1);
                 continue;
             }
 
-            if(!board[i][j-1])
+            switch(board[i][j-1])
             {
-                printf("_ ");
-            }
-            else
-            {
-                printf("%c ", board[i][j-1]);
+                case 0:
+                {
+                    printf(WATER);
+                    break;
+                }
+                case HIT:
+                {
+                    printf(RED "%c " RESETCOLOR, board[i][j-1]);
+                    break;
+                }
+                case MISS:
+                {
+                    printf("%c ", board[i][j-1]);
+                    break;
+                }
+                case TERRAIN:
+                {
+                    printf(GREEN "%c " RESETCOLOR, board[i][j-1]);
+                    break;
+                }
+                default:
+                {
+                    printf(CYAN "%c " RESETCOLOR, board[i][j-1]);
+                }
             }
         }
 
@@ -142,22 +191,25 @@ int validLocationInput(char **shipPlacement, int boardSize, char *start, char *e
 {
     int startVal = (toupper(*start) - 'A') + strtol(start+1, NULL, 10),
         endVal = (toupper(*end) - 'A') + strtol(end+1, NULL, 10),
-        row = strtol(start+1, NULL, 10),
-        column = toupper(*start) - 'A';
+        rowStart = strtol(start+1, NULL, 10),
+        columnStart = toupper(*start) - 'A',
+        rowEnd = strtol(end+1, NULL, 10),
+        columnEnd = toupper(*end) - 'A';
     char startBoundry = startVal >= 1 && startVal < (boardSize * 2),
          endBoundry = endVal >= 1 && endVal < (boardSize * 2),
-         boatLength = endVal - startVal + 1 == (int) size;
+         boatLength = (endVal - startVal + 1) == (int) size;
 
     
     if(!startBoundry || !endBoundry || !boatLength ||
-           shipPlacement[row][column] || shipPlacement[row][column])
+           shipPlacement[rowStart-1][columnStart] || 
+           shipPlacement[rowEnd-1][columnEnd])
     {
         return INVALID;
     }
 
-    for(int j = toupper(*start) - 'A'; j < toupper(*end) - 'A' + 1; j++)
+    for(int i = strtol(start+1, NULL, 10); i <= strtol(end+1, NULL, 10); i++)
     {
-        for(int i = strtol(start+1, NULL, 10); i < strtol(end+1, NULL, 10) + 1; i++)
+        for(int j = toupper(*start) - 'A'; j < toupper(*end) - 'A' + 1; j++)
         {
             if(shipPlacement[i-1][j])
             {
@@ -179,16 +231,16 @@ int autoShipPlacement(char **shipPlacement, int boardSize)
             "a2", "a4", "c5", "b3", "c4", "d5"
         };
     char ships[7][17] =
-    {
-        "Patrol Boat", "Submarine", "Cruiser",
-        "Destroyer", "Battleship", "Aircraft Carrier"
-    };
+        {
+            "Patrol Boat", "Submarine", "Cruiser",
+            "Destroyer", "Battleship", "Aircraft Carrier"
+        };
     Ships ship[7] =
-    {
-        Patrol, Sub, Cruiser,
-        Destroyer, Battleship,
-        Carrier
-    };
+        {
+            Patrol, Sub, Cruiser,
+            Destroyer, Battleship,
+            Carrier
+        };
 
     for(int i = 0; i < 6; i++)
     {
@@ -253,6 +305,8 @@ void boardInit(Player *player)
         player->hitMiss[i] = calloc(player->size, sizeof(char));
         player->shipPlacement[i] = calloc(player->size, sizeof(char));
     }
+
+    randomTerrain(player);
 }
 
 void playerDestruct(Player **players)
@@ -429,8 +483,8 @@ int newGame(Player **players)
     for(int i = 0; i < 2; i++)
     {
         boardInit(players[i]);
-        autoShipPlacement(players[i]->shipPlacement, players[i]->size);
-        //shipPlacement(players[i]->shipPlacement, i, players[i]->size);
+        //autoShipPlacement(players[i]->shipPlacement, players[i]->size);
+        shipPlacement(players[i]->shipPlacement, i, players[i]->size);
     } 
 
     return VALID;
@@ -474,7 +528,6 @@ char checkShot(Player *player, int row, int column)
 
     if(player->shipPlacement[row-1][column])
     {
-        player->hits += 1;
         return HIT;
     }
 
@@ -610,9 +663,9 @@ int game(Player **players, int turn)
     int column = 0;
     long row = 0;
 
-    checkSunkinShip(players[turn^1], turn+2);
+    checkSunkinShip(players[turn], (turn^1) + 1);
 
-    printBoard(players[turn]->hitMiss, players[turn]->size);
+    printBoard(players[turn^1]->hitMiss, players[turn]->size);
     printDivider(players[turn]->size);
     printBoard(players[turn]->shipPlacement, players[turn]->size);
     printf("Player %d SHOOT!\nType quit to exit.\n", turn + 1);
@@ -635,11 +688,17 @@ int game(Player **players, int turn)
         column = toupper(line[0]) - 'A';
         row = strtol(line + 1, NULL, 10);
     }while(!validGameInput(players[turn]->size, row, column) ||
-            players[turn]->hitMiss[row-1][column]);
+            players[turn^1]->hitMiss[row-1][column]);
 
     players[turn]->totalShots++;
-    shot = checkShot(players[turn], row, column); 
-    players[turn]->hitMiss[row-1][column] = shot; 
+    shot = checkShot(players[turn^1], row, column); 
+
+    if(shot == HIT)
+    {
+        players[turn]->hits++;
+    }
+
+    players[turn^1]->hitMiss[row-1][column] = shot; 
     players[turn^1]->shipPlacement[row-1][column] = shot;
 
     free(line);

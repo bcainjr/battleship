@@ -7,32 +7,42 @@
 #ifndef BATTLESHIPGAME_H
 #define BATTLESHIPGAME_H
 
+#include <stdint.h>
+
+#define BANNER  " ____        _   _   _           _     _       \n"\
+                "| __ )  __ _| |_| |_| | ___  ___| |__ (_)_ __  \n"\
+                "|  _ \\ / _` | __| __| |/ _ \\/ __| '_ \\| | '_ \\ \n"\
+                "| |_) | (_| | |_| |_| |  __/\\__ \\ | | | | |_) |\n"\
+                "|____/ \\__,_|\\__|\\__|_|\\___||___/_| |_|_| .__/ \n"\
+                "                                        |_|    \n"
+
+
 typedef struct ShipHit
 {
-    char patrol:2;
-    char sub:2;
-    char cruiser:2;
-    char destroyer:2;
-    char battleship:2;
-    char aircraft:2;
+    uint8_t patrol:1;
+    uint8_t sub:1;
+    uint8_t cruiser:1;
+    uint8_t destroyer:1;
+    uint8_t battleship:1;
+    uint8_t aircraft:1;
 } ShipHit;
 
 typedef struct ShipHP
 {
-    char patrolHit:3;
-    char subHit:3;
-    char cruiserHit:4;
-    char destroyerHit:4;
-    char battleshipHit:5;
-    char aircraftHit:6;
+    uint8_t patrolHit:2;
+    uint8_t subHit:2;
+    uint8_t cruiserHit:2;
+    uint8_t destroyerHit:2;
+    uint8_t battleshipHit:3;
+    uint8_t aircraftHit:3;
 
 } ShipHP;
 
 typedef struct Player
 {
-    char size;
-    char totalShots;
-    char hits;
+    uint8_t size;
+    uint8_t hits;
+    uint8_t totalShots;
     ShipHP *shipHP;
     ShipHit *shipHit;
     char **hitMiss;
