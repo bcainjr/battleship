@@ -32,9 +32,6 @@ int main(void)
         playing = game(players, turn);
     }
 
-    while(!playing && !valid)
-    {
-        playerDestruct(players);
-    }
+    playerDestruct(players);
     return 0;
 }
